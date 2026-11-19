@@ -22,6 +22,36 @@ module board_reg (
     output wire [3:0]  zero_pos      // 0 号空位所在格索引
 );
 
+    // 内部寄存器
+    reg [35:0] board_r;
+    reg [8:0]  cell_valid_r;
+    reg [3:0]  zero_pos_r;
+
+    // 时序逻辑：处理初始化写入
+    always @(posedge clk or negedge rst_n) begin
+        if (!rst_n) begin
+            // 复位：清空棋盘、清空有效位、空位索引归 0
+            board_r      <= 36'd0;
+            cell_valid_r <= 9'd0;
+            zero_pos_r   <= 4'd0;
+        end else if (init_we) begin
+            // 1. 写入数据到对应的棋盘格
+            board_r[init_idx * 4 +: 4] <= init_data;
+            
+            // 2. 将该格的有效标志置 1（用于数码管渐进显示）
+            cell_valid_r[init_idx]     <= 1'b1;
+            
+            // 3. 如果输入的是 0 号棋，更新空位索引
+            if (init_data == 4'd0) begin
+                zero_pos_r <= init_idx;
+            end
+        end
+    end
+
+    // 组合逻辑：输出连线
+    assign board      = board_r;
+    assign cell_valid = cell_valid_r;
+    assign zero_pos   = zero_pos_r;
 
 
 endmodule
